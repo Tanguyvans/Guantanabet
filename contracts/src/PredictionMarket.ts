@@ -1,4 +1,4 @@
-import { Field, SmartContract, state, State, method, Struct, PublicKey, MerkleMap, Poseidon } from 'o1js';
+import { Field, SmartContract, state, State, method, Struct, PublicKey } from 'o1js';
 
 // Define market structure
 class Market extends Struct({
@@ -6,8 +6,7 @@ class Market extends Struct({
     yesPool: Field,
     resolved: Field,
     outcome: Field,
-    endTime: Field,
-    betsCommitmentRoot: Field
+    endTime: Field
 }) {
     static empty(): Market {
         return new Market({
@@ -15,27 +14,31 @@ class Market extends Struct({
             yesPool: Field(0),
             resolved: Field(0),
             outcome: Field(0),
-            endTime: Field(0),
-            betsCommitmentRoot: Field(0)
+            endTime: Field(0)
         });
     }
 }
 
 export class PredictionMarket extends SmartContract {
-    @state(Field) marketsRoot = State<Field>();
+    @state(Field) numMarkets = State<Field>();
+    @state(Market) markets = State<Market>();
+    @state(Market) currentMarket = State<Market>();
+
+    constructor(address: PublicKey) {
+        super(address);
+    }
 
     init() {
         super.init();
-        this.marketsRoot.set(Field(0));
+        this.numMarkets.set(Field(0));
+        this.markets.set(Market.empty());
     }
 
     @method async createMarket(
-        marketId: Field,
-        endTime: Field,
-    ) {
-        // Get current root
-        const currentRoot = this.marketsRoot.get();
-        this.marketsRoot.requireEquals(currentRoot);
+        endTime: Field
+    ): Promise<void> {
+        const currentNum = this.numMarkets.get();
+        this.numMarkets.requireEquals(currentNum);
 
         // Create new market
         const market = new Market({
@@ -43,22 +46,14 @@ export class PredictionMarket extends SmartContract {
             yesPool: Field(0),
             resolved: Field(0),
             outcome: Field(0),
-            endTime: endTime,
-            betsCommitmentRoot: Field(0)
+            endTime: endTime
         });
 
-        // Update root with new market data
-        // We'll use a simple hash of the market ID and data as the new root
-        const newRoot = Poseidon.hash([
-            marketId,
-            market.totalPool,
-            market.yesPool,
-            market.resolved,
-            market.outcome,
-            market.endTime,
-            market.betsCommitmentRoot
-        ]);
+        // Store market
+        this.markets.set(market);
 
-        this.marketsRoot.set(newRoot);
+        // Increment number of markets
+        this.numMarkets.set(currentNum.add(1));
     }
+    
 }

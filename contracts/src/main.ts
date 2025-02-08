@@ -34,23 +34,30 @@ console.log('Contract address:', zkAppAddress.toBase58());
 
 // Create a new market
 console.log('\nCreating a new market...');
-const marketId = Field(1);
 const endTime = Field(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
 const createMarketTxn = await Mina.transaction(senderAccount, async () => {
-  await zkApp.createMarket(marketId, endTime);
+  await zkApp.createMarket(endTime);
 });
 await createMarketTxn.prove();
 await createMarketTxn.sign([senderKey]).send();
 
-const marketsRoot = zkApp.marketsRoot.get();
 console.log('Market created successfully!');
-console.log('Market ID:', marketId.toString());
-console.log('End Time:', endTime.toString());
-console.log('Markets Root:', marketsRoot.toString());
+
+// ----------------------------------------------------
+
+// Get market data
+console.log('\nFetching market data...');
+const market = zkApp.getMarketById();
+console.log('Market data:', {
+    id: market.getId().toString(),
+    totalPool: market.getTotalPool().toString(),
+    yesPool: market.getYesPool().toString(),
+    endTime: market.endTime.toString()
+});
 
 // ----------------------------------------------------
 
 // Print final state
 console.log('\nFinal contract state:');
-console.log('Markets Root:', zkApp.marketsRoot.get().toString());
+console.log('Number of markets:', zkApp.numMarkets.get().toString());

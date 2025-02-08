@@ -1,107 +1,115 @@
-import {TokenId, UInt64} from "@proto-kit/library";
+import { TokenId, UInt64 } from "@proto-kit/library";
 import { runtimeModule, state, runtimeMethod, RuntimeModule } from "@proto-kit/module";
-import {assert, State, StateMap} from "@proto-kit/protocol";
-import {PublicKey, Bool, Struct, CircuitString, Provable} from "o1js";
-import {inject} from "tsyringe";
-import {Balances} from "./balances";
+import { State, StateMap, assert } from "@proto-kit/protocol";
+import { PublicKey, Bool, Struct, CircuitString, Provable } from "o1js";
+import { inject } from "tsyringe";
+import { Balances } from "./balances";
 
 export class Bets extends Struct({
-    predictionId: UInt64,
-    numberOfYesBets: UInt64,
-    numberOfNoBets: UInt64,
-    result: Bool,
-    endingTime: UInt64,
-    isResolved: Bool,
-    description: CircuitString
-}){}
+  betId: UInt64,
+  yesBetAmount: UInt64,
+  noBetAmount: UInt64,
+  isOver: Bool,
+  result: Bool,
+  startingTimestamp: UInt64,
+  endingTimestamp: UInt64,
+  minimumStakeAmount: UInt64,
+  description: CircuitString
+}) {}
 
-export class Prediction extends Struct({
-    betId: UInt64,
-    PK: PublicKey
-}){}
+export class StakedId extends Struct({
+  betId: UInt64,
+  publicKey: PublicKey
+}) {}
 
 @runtimeModule()
 export class PredictionMarket extends RuntimeModule {
-    @state() public yesBet = StateMap.from<Prediction, UInt64>(Prediction, UInt64);
-    @state() public noBet = StateMap.from<Prediction, UInt64>(Prediction, UInt64);
-    @state() public lastId = State.from<UInt64>(UInt64);
-    @state() public totalBets = StateMap.from(UInt64, Bets)
+  @state() public stakedToYes = StateMap.from<StakedId,UInt64>(StakedId, UInt64);
+  @state() public stakedToNo = StateMap.from<StakedId,UInt64>(StakedId, UInt64);
+  @state() public lastBetId = State.from<UInt64>(UInt64);
+  @state() public totalBets = StateMap.from(UInt64, Bets);
 
-    constructor(@inject("Balances") private balances: Balances) {
-        super();
-    }
+  constructor(@inject("Balances") private balances: Balances) {
+      super();
+  }
 
-    @runtimeMethod()
-    async createBet(endTime: UInt64, description: CircuitString) {
-        let lastBetId = (await this.lastId.get()).orElse(UInt64.from(0));
-        await this.lastId.set(lastBetId.add(1));
-        let bet = new Bets({
-            predictionId: lastBetId,
-            numberOfYesBets: UInt64.from(0),
-            numberOfNoBets: UInt64.from(0),
-            result: Bool(false),
-            endingTime: endTime,
-            isResolved: Bool(false),
-            description: description
-        });
-        await this.totalBets.set(lastBetId.add(1), bet);
-        return bet;
-    }
+  @runtimeMethod()
+  public async createBet(minimumStakeAmount: UInt64, description: CircuitString) {
+    let lastBetId = (await this.lastBetId.get()).orElse(UInt64.zero);
+    let startingTimestamp = UInt64.from(0);
+    startingTimestamp.value = this.network.block.height.value;
+    let endingTimestamp = UInt64.from(0);
+    endingTimestamp.value = this.network.block.height.value.add(100);
+    await this.lastBetId.set(lastBetId.add(1));
+    let bet = new Bets({
+      betId: lastBetId,
+      yesBetAmount: UInt64.zero,
+      noBetAmount: UInt64.zero,
+      isOver: Bool(false),
+      result: Bool(false),
+      startingTimestamp: startingTimestamp,
+      endingTimestamp: endingTimestamp,
+      minimumStakeAmount: minimumStakeAmount,
+      description: description
+    });
+    await this.totalBets.set(lastBetId.add(1), bet);
+    return bet;
+  }
 
-    @runtimeMethod()
-    async getBets() {
-        return this.totalBets;
-    }
+  @runtimeMethod()
+  public async placeBet(betId: UInt64, outcome: Bool, amount: UInt64) {
+    let theBet = (await this.totalBets.get(betId)).value;
+    assert(theBet.isOver.not(), "The bet is over");
+    assert(amount.greaterThan(theBet.minimumStakeAmount), "Amount is lower than minimum stake amount");
+    
+    let stakedIds = new StakedId({ betId: betId, publicKey: this.transaction.sender.value });
 
-    @runtimeMethod()
-    async getBetById(betId: UInt64) {
-        return this.totalBets.get(betId);
-    }
+    
+    theBet.yesBetAmount = Provable.if<UInt64>(outcome, UInt64, theBet.yesBetAmount.add(amount), theBet.yesBetAmount);
+    const stakedToYes = (await this.stakedToYes.get(stakedIds)).orElse(UInt64.zero);
+    let stakedToYesNew = Provable.if<UInt64>(outcome,UInt64,stakedToYes.add(amount),stakedToYes);
+    await this.stakedToYes.set(stakedIds, stakedToYesNew);
 
-    @runtimeMethod()
-    public async placeBet(predictionId: UInt64, prediction_result: Bool, amount: UInt64) {
-        let bet = (await this.totalBets.get(predictionId)).value;
-        assert(bet.isResolved.not(), "The bet is already resolved");
-        assert(amount.greaterThan(UInt64.from(0)), "Amount must be greater than 0");
+    theBet.noBetAmount = Provable.if<UInt64>(outcome, UInt64, theBet.noBetAmount.add(amount), theBet.noBetAmount);
+    const stakedToNo = (await this.stakedToNo.get(stakedIds)).orElse(UInt64.zero);
+    let stakedToNoNew = Provable.if<UInt64>(outcome,UInt64,stakedToNo.add(amount),stakedToNo);
+    await this.stakedToNo.set(stakedIds, stakedToNoNew);
 
-        let prediction = new Prediction({
-            betId: predictionId,
-            PK: this.transaction.sender.value
-        });
 
-        bet.numberOfYesBets = Provable.if<UInt64>(prediction_result, UInt64, bet.numberOfYesBets.add(amount), bet.numberOfYesBets);
-        const betOnYes = (await this.yesBet.get(prediction)).orElse(UInt64.zero);
-        let newBetOnYes = Provable.if<UInt64>(prediction_result, UInt64, betOnYes.add(amount), betOnYes);
-        await this.yesBet.set(prediction, newBetOnYes);
 
-        bet.numberOfNoBets = Provable.if<UInt64>(prediction_result, UInt64, bet.numberOfNoBets.add(amount), bet.numberOfNoBets);
-        const betOnNo = (await this.yesBet.get(prediction)).orElse(UInt64.zero);
-        let newBetOnNo = Provable.if<UInt64>(prediction_result, UInt64, betOnNo.add(amount), betOnNo);
-        await this.yesBet.set(prediction, newBetOnNo);
-    }
+    // if (outcome.toBoolean()) {
+    //   theBet.yesBetAmount = theBet.yesBetAmount.add(amount);
+    //   let stakedIds = new StakedId({ betId: betId, publicKey: this.transaction.sender.value });
+    //   let stakedToYes = (await this.stakedToYes.get(stakedIds)).orElse(UInt64.zero);
+    //   await this.stakedToYes.set(stakedIds, stakedToYes.add(amount));
+    // } else {
+    //   theBet.noBetAmount = theBet.noBetAmount.add(amount);
+    //   let stakedIds = new StakedId({ betId: betId, publicKey: this.transaction.sender.value });
+    //   let stakedToNo = (await this.stakedToNo.get(stakedIds)).orElse(UInt64.zero);
+    //   await this.stakedToNo.set(stakedIds, stakedToNo.add(amount));
+    // }
 
-    @runtimeMethod()
-    public async resolveBet(predictionId: UInt64) {
-        let bet = (await this.totalBets.get(predictionId)).value;
-        assert(this.network.block.height.value.greaterThan(bet.endingTime.value), "The bet is not ended yet");
-        bet.isResolved = Bool(true);
+    await this.totalBets.set(betId, theBet);
+  }
 
-        // TODO: Implement the Oracle logic here
+  @runtimeMethod()
+  public async closeMarket(betId: UInt64) {
+    let theBet = (await this.totalBets.get(betId)).value;
+    assert(this.network.block.height.value.greaterThan(theBet.endingTimestamp.value), "Bet is not yet over");
+    theBet.isOver = Bool(true);
+    theBet.result = Bool(true); // Placeholder for oracle integration
+    await this.totalBets.set(betId, theBet);
+  }
 
-        await this.totalBets.set(predictionId, bet);
-    }
+  @runtimeMethod()
+  public async claimWinnings(betId: UInt64, address: PublicKey) {
+    let theBet = (await this.totalBets.get(betId)).value;
+    assert(theBet.isOver, "The bet is not closed yet");
+    let stakedIds = new StakedId({ betId: betId, publicKey: this.transaction.sender.value });
+    let amountToSend = (await this.stakedToYes.get(stakedIds)).value;
+    const tokenId = TokenId.from(0);
 
-    @runtimeMethod()
-    public async withdraw(predictionId: UInt64, address: PublicKey) {
-        let bet = (await this.totalBets.get(predictionId)).value;
-        assert(bet.isResolved, "The bet is not resolved yet");
-        let prediction = new Prediction({
-            betId: predictionId,
-            PK: this.transaction.sender.value
-        });
-        let profit = (await this.yesBet.get(prediction)).value;
+    await this.balances.mint(tokenId, address, amountToSend );
 
-        const tokenId = TokenId.from(0);
-        await this.balances.mint(tokenId, address, profit );
-    }
+  }
 }
