@@ -7,11 +7,11 @@ import styles from '../styles/Home.module.css';
 import heroMinaLogo from '../public/assets/hero-mina-logo.svg';
 import arrowRightSmall from '../public/assets/arrow-right-small.svg';
 import {fetchAccount, Mina, PublicKey} from "o1js";
-import {Add} from "../../contracts";
+import {Add} from "../../contracts/src/Add";
 
 // We've already deployed the Add contract on testnet at this address
 // https://minascan.io/devnet/account/B62qnTDEeYtBHBePA4yhCt4TCgDtA4L2CGvK7PirbJyX4pKH8bmtWe5
-const zkAppAddress = "B62qnTDEeYtBHBePA4yhCt4TCgDtA4L2CGvK7PirbJyX4pKH8bmtWe5";
+const zkAppAddress = "B62qit3nGJUg311EMRCGjd5xUFNnAn1W7tLQ96jPmQXa1vm8gtYgWgp";
 
 import './reactCOIServiceWorker';
 

@@ -1,4 +1,4 @@
-# Mina zkApp: Contracts
+# Mina zkApp: 03 Deploying To A Live Network
 
 This template uses TypeScript.
 
