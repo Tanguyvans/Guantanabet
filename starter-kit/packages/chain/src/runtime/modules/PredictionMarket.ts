@@ -7,6 +7,7 @@ import { Balances } from "./balances";
 
 export class Bets extends Struct({
   betId: UInt64,
+  betType: CircuitString,
   yesBetAmount: UInt64,
   noBetAmount: UInt64,
   isOver: Bool,
@@ -34,15 +35,19 @@ export class PredictionMarket extends RuntimeModule {
   }
 
   @runtimeMethod()
-  public async createBet(minimumStakeAmount: UInt64, description: CircuitString) {
+  public async createBet(minimumStakeAmount: UInt64, betType: CircuitString, description: CircuitString, duration: UInt64) {
+    assert(minimumStakeAmount.greaterThan(UInt64.zero), "Minimum stake amount must be greater than 0");
+    assert(Bool(betType === CircuitString.fromString("Long") || betType === CircuitString.fromString("Short")), "Bet type must be 'Long' or 'Short'");
+
     let lastBetId = (await this.lastBetId.get()).orElse(UInt64.zero);
     let startingTimestamp = UInt64.from(0);
     startingTimestamp.value = this.network.block.height.value;
     let endingTimestamp = UInt64.from(0);
-    endingTimestamp.value = this.network.block.height.value.add(100);
+    endingTimestamp.value = this.network.block.height.value.add(duration.value);
     await this.lastBetId.set(lastBetId.add(1));
     let bet = new Bets({
       betId: lastBetId,
+      betType: betType,
       yesBetAmount: UInt64.zero,
       noBetAmount: UInt64.zero,
       isOver: Bool(false),
@@ -63,7 +68,6 @@ export class PredictionMarket extends RuntimeModule {
     assert(amount.greaterThan(theBet.minimumStakeAmount), "Amount is lower than minimum stake amount");
     
     let stakedIds = new StakedId({ betId: betId, publicKey: this.transaction.sender.value });
-
     
     theBet.yesBetAmount = Provable.if<UInt64>(outcome, UInt64, theBet.yesBetAmount.add(amount), theBet.yesBetAmount);
     const stakedToYes = (await this.stakedToYes.get(stakedIds)).orElse(UInt64.zero);
@@ -75,29 +79,31 @@ export class PredictionMarket extends RuntimeModule {
     let stakedToNoNew = Provable.if<UInt64>(outcome,UInt64,stakedToNo.add(amount),stakedToNo);
     await this.stakedToNo.set(stakedIds, stakedToNoNew);
 
-
-
-    // if (outcome.toBoolean()) {
-    //   theBet.yesBetAmount = theBet.yesBetAmount.add(amount);
-    //   let stakedIds = new StakedId({ betId: betId, publicKey: this.transaction.sender.value });
-    //   let stakedToYes = (await this.stakedToYes.get(stakedIds)).orElse(UInt64.zero);
-    //   await this.stakedToYes.set(stakedIds, stakedToYes.add(amount));
-    // } else {
-    //   theBet.noBetAmount = theBet.noBetAmount.add(amount);
-    //   let stakedIds = new StakedId({ betId: betId, publicKey: this.transaction.sender.value });
-    //   let stakedToNo = (await this.stakedToNo.get(stakedIds)).orElse(UInt64.zero);
-    //   await this.stakedToNo.set(stakedIds, stakedToNo.add(amount));
-    // }
-
     await this.totalBets.set(betId, theBet);
   }
+
+  @runtimeMethod()
+  public async shortBetOnLongBet(betId: UInt64, minimumStakeAmount: UInt64, description: CircuitString, duration: UInt64) {
+    let theBet = (await this.totalBets.get(betId)).value;
+    assert(theBet.isOver.not(), "The bet is over");
+    assert(Bool(theBet.betType === CircuitString.fromString("Long")), "The bet is not a Long bet");
+    assert(duration.greaterThan(UInt64.zero), "Duration must be greater than 0");
+    let delta = theBet.endingTimestamp.value.sub(duration.value);
+    assert(delta.lessThanOrEqual(0), "Duration is greater than the remaining time of the bet");
+
+    await this.createBet(minimumStakeAmount, CircuitString.fromString("Short"), description, duration);
+  }
+
 
   @runtimeMethod()
   public async closeMarket(betId: UInt64) {
     let theBet = (await this.totalBets.get(betId)).value;
     assert(this.network.block.height.value.greaterThan(theBet.endingTimestamp.value), "Bet is not yet over");
     theBet.isOver = Bool(true);
+
+    // TODO - Integrate with Flare Oracle
     theBet.result = Bool(true); // Placeholder for oracle integration
+
     await this.totalBets.set(betId, theBet);
   }
 
@@ -110,6 +116,5 @@ export class PredictionMarket extends RuntimeModule {
     const tokenId = TokenId.from(0);
 
     await this.balances.mint(tokenId, address, amountToSend );
-
   }
 }

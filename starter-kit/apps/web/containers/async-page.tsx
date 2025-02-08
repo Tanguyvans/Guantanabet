@@ -40,6 +40,7 @@ export default function Home() {
                     // After blockchain transaction, update local state
                     let newid = await predictionMarket.createMarket({
                       description: "Will the price of BTC be higher than $50,000 on 2025-03-01?",
+                      betType: "Long",
                       endingTimestamp: 1714531200,
                       startingTimestamp: Date.now(),
                       minimumStakeAmount: 1000000000,
@@ -63,6 +64,44 @@ export default function Home() {
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
               >
                 Create Market
+              </button>
+
+              <button
+                onClick={async () => {
+                  try {
+                    console.log("Creating market...");
+                    if (!wallet.wallet) {
+                      alert("Please connect your wallet first");
+                      return;
+                    }
+
+                    // After blockchain transaction, update local state
+                    let otherid = await predictionMarket.createShortBetOnLongBet(marketId,
+                        {
+                      description: "SHORT - Will the price of BTC be higher than $50,000 on 2025-03-01?",
+                      endingTimestamp: 1714531200,
+                      startingTimestamp: Date.now(),
+                      minimumStakeAmount: 1000000000,
+                      totalStake: 0,
+                      yesPercentage: 50,
+                      noPercentage: 50,
+                      creator: wallet.wallet,
+                      isResolved: false
+                    });
+
+                    console.log(otherid);
+
+                    setMarketId(otherid);
+
+                    console.log("Short Market created successfully");
+
+                  } catch (error) {
+                    console.error("Failed to create prediction market:", error);
+                  }
+                }}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+              >
+                Create short Market on long
               </button>
             </div>
           </div>

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 export interface PredictionMarket {
   id: string;
+  betType: string;
   description: string;
   endingTimestamp: number;
   startingTimestamp: number;
@@ -22,6 +23,7 @@ interface PredictionMarketState {
   error: string | null;
   // Actions
   createMarket: (market: Omit<PredictionMarket, 'id'>) => Promise<void>;
+  createShortBetOnLongBet: (id: string, market: Omit<PredictionMarket, 'id'>) => Promise<void>;
   placeBet: (marketId: string, isYes: boolean, amount: number) => Promise<void>;
   resolveMarket: (marketId: string, outcome: boolean) => Promise<void>;
   setCurrentMarket: (market: PredictionMarket | null) => void;
@@ -150,5 +152,33 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
 
   getMarket: (id) => {
     return get().markets.find(market => market.id === id) || null;
+  },
+
+  createShortBetOnLongBet: async (id, market) => {
+    try {
+      set({ isLoading: true, error: null });
+
+      // check if market exists
+        const longMarket = get().markets.find(market => market.id === id);
+        if (longMarket && longMarket.betType === 'Long') {
+          // create short market
+          const shortMarket = {
+            betType: 'Short',
+            description: market.description,
+            endingTimestamp: market.endingTimestamp,
+            startingTimestamp: market.startingTimestamp,
+            minimumStakeAmount: market.minimumStakeAmount,
+            creator: market.creator,
+            totalStake: 0,
+            yesPercentage: 50,
+            noPercentage: 50,
+            isResolved: false
+          };
+          return await get().createMarket(shortMarket);
+        }
+    } catch (error) {
+      set({ error: 'Failed to create market', isLoading: false });
+      throw error;
+    }
   }
 }));
