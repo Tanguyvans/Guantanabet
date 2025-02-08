@@ -8,89 +8,102 @@ import heroMinaLogo from '../public/assets/hero-mina-logo.svg';
 import arrowRightSmall from '../public/assets/arrow-right-small.svg';
 import {fetchAccount, Mina, PublicKey} from "o1js";
 import {Add} from "../../contracts/src/Add";
+import {PredictionMarket} from "../../contracts/src/PredictionMarket";
+import {Field} from "o1js";
 
-// We've already deployed the Add contract on testnet at this address
-// https://minascan.io/devnet/account/B62qnTDEeYtBHBePA4yhCt4TCgDtA4L2CGvK7PirbJyX4pKH8bmtWe5
-const zkAppAddress = "B62qit3nGJUg311EMRCGjd5xUFNnAn1W7tLQ96jPmQXa1vm8gtYgWgp";
+// Update this with your deployed contract address
+// const zkAppAddress = "B62qit3nGJUg311EMRCGjd5xUFNnAn1W7tLQ96jPmQXa1vm8gtYgWgp";
+const zkAppAddress = "B62qoBAoZRt8SRUKTqKKooSJFL9g25bHoQein272UNQBy7HriDaAEWT";
 
 import './reactCOIServiceWorker';
 
 export default function Home() {
-  const zkApp = useRef<Add>(new Add(PublicKey.fromBase58(zkAppAddress)));
-
+  const zkApp = useRef<PredictionMarket>(new PredictionMarket(PublicKey.fromBase58(zkAppAddress)));
+  const [marketsRoot, setMarketsRoot] = useState<string | null>(null);
+  const [endTime, setEndTime] = useState<string>("");
+  const [marketId, setMarketId] = useState<string>("");
   const [transactionLink, setTransactionLink] = useState<string | null>(null);
-  const [contractState, setContractState] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // fetch the zkapp state when the page loads
+  // fetch the contract state when the page loads
   useEffect(() => {
     (async () => {
-      Mina.setActiveInstance(Mina.Network('https://api.minascan.io/node/devnet/v1/graphql'));
-      await fetchAccount({publicKey: zkAppAddress});
-      const num = zkApp.current.num.get();
-      setContractState(num.toString());
+      try {
+        Mina.setActiveInstance(Mina.Network('https://api.minascan.io/node/devnet/v1/graphql'));
+        await fetchAccount({publicKey: zkAppAddress});
+        const root = zkApp.current.marketsRoot.get();
+        setMarketsRoot(root.toString());
 
-      // Compile the contract so that o1js has the proving key required to execute contract calls
-      console.log("Compiling Add contract to generate proving and verification keys");
-      await Add.compile();
+        console.log("Compiling PredictionMarket contract...");
+        await PredictionMarket.compile();
 
-      setLoading(false);
+        setLoading(false);
+      } catch (e) {
+        console.error(e);
+        setError("Failed to load contract state");
+        setLoading(false);
+      }
     })();
   }, []);
 
-  const updateZkApp = useCallback(async () => {
+  const createMarket = useCallback(async () => {
     setTransactionLink(null);
     setLoading(true);
+    setError(null);
 
     try {
-      // Retrieve Mina provider injected by browser extension wallet
       const mina = (window as any).mina;
       const walletKey: string = (await mina.requestAccounts())[0];
       console.log("Connected wallet address: " + walletKey);
       await fetchAccount({publicKey: PublicKey.fromBase58(walletKey)});
 
-      // Execute a transaction locally on the browser
       const transaction = await Mina.transaction(async () => {
-        console.log("Executing Add.update() locally");
-        await zkApp.current.update();
+        console.log("Creating new market...");
+        await zkApp.current.createMarket(
+          Field(marketId),
+          Field(endTime)
+        );
       });
 
-      // Prove execution of the contract using the proving key
-      console.log("Proving execution of Add.update()");
+      console.log("Proving transaction...");
       await transaction.prove();
 
-      // Broadcast the transaction to the Mina network
-      console.log("Broadcasting proof of execution to the Mina network");
-      const {hash} = await mina.sendTransaction({transaction: transaction.toJSON()});
+      console.log("Sending transaction...");
+      const {hash} = await mina.sendTransaction({
+        transaction: transaction.toJSON(),
+      });
 
-      // display the link to the transaction
       const transactionLink = "https://minascan.io/devnet/tx/" + hash;
       setTransactionLink(transactionLink);
+      
+      // Refresh the markets root after creation
+      const newRoot = zkApp.current.marketsRoot.get();
+      setMarketsRoot(newRoot.toString());
     } catch (e: any) {
-      console.error(e.message);
-      let errorMessage = "";
-
-      if (e.message.includes("Cannot read properties of undefined (reading 'requestAccounts')")) {
-        errorMessage = "Is Auro installed?";
-      } else if (e.message.includes("Please create or restore wallet first.")) {
-        errorMessage = "Have you created a wallet?";
-      } else if (e.message.includes("User rejected the request.")) {
-        errorMessage = "Did you grant the app permission to connect?";
-      } else {
-        errorMessage = "An unknown error occurred.";
-      }
-      setError(errorMessage);
+      console.error(e);
+      setError(handleError(e));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [marketId, endTime]);
+
+  const handleError = (e: any): string => {
+    if (e.message.includes("Cannot read properties of undefined (reading 'requestAccounts')")) {
+      return "Is Auro wallet installed?";
+    } else if (e.message.includes("Please create or restore wallet first.")) {
+      return "Please create a wallet first";
+    } else if (e.message.includes("User rejected the request.")) {
+      return "Please grant permission to connect";
+    }
+    return "An unknown error occurred";
+  };
 
   return (
     <>
       <Head>
-        <title>Mina zkApp UI</title>
-        <meta name="description" content="built with o1js"/>
+        <title>Prediction Market zkApp</title>
+        <meta name="description" content="Prediction Market built with o1js"/>
         <link rel="icon" href="/assets/favicon.ico"/>
       </Head>
       <GradientBG>
@@ -121,16 +134,37 @@ export default function Home() {
           </p>
           <div className={styles.state}>
             <div>
-              <div>Contract State: <span className={styles.bold}>{contractState}</span></div>
-              {error ? (
-                <span className={styles.error}>Error: {error}</span>
-              ) : (loading ?
-                <div>Loading...</div> :
-                (transactionLink ?
+              <div>Markets Root: <span className={styles.bold}>{marketsRoot}</span></div>
+              
+              <div className={styles.form}>
+                <input
+                  type="text"
+                  placeholder="Market ID"
+                  value={marketId}
+                  onChange={(e) => setMarketId(e.target.value)}
+                  className={styles.input}
+                />
+                <input
+                  type="text"
+                  placeholder="End Time (Unix timestamp)"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className={styles.input}
+                />
+                {error ? (
+                  <span className={styles.error}>Error: {error}</span>
+                ) : loading ? (
+                  <div>Loading...</div>
+                ) : transactionLink ? (
                   <a href={transactionLink} className={styles.bold} target="_blank" rel="noopener noreferrer">
                     View Transaction on MinaScan
-                  </a> :
-                  <button onClick={updateZkApp} className={styles.button}>Call Add.update()</button>))}
+                  </a>
+                ) : (
+                  <button onClick={createMarket} className={styles.button}>
+                    Create Market
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className={styles.grid}>

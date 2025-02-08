@@ -28,4 +28,17 @@ export class Balances extends BaseBalances<BalancesConfig> {
     await this.circulatingSupply.set(newCirculatingSupply);
     await this.mint(tokenId, address, amount);
   }
+
+  @runtimeMethod()
+  public multiplyBalance(tokenId: TokenId, address: PublicKey, multiplier: number  ): Promise<void> {
+    const circulatingSupply = await this.circulatingSupply.get();
+    const newCirculatingSupply = Balance.from(circulatingSupply.value).add(
+      amount
+    );
+    assert(
+      newCirculatingSupply.lessThanOrEqual(this.config.totalSupply),
+      "Circulating supply would be higher than total supply"
+    );
+    await this.circulatingSupply.set(newCirculatingSupply);
+    await this.mint(tokenId, address, amount);
 }

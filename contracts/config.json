@@ -9,6 +9,15 @@
       "feepayerAlias": "04-deploy",
       "fee": "0.1",
       "smartContract": "Add"
+    },
+    "devnet": {
+      "networkId": "testnet",
+      "url": "https://api.minascan.io/node/devnet/v1/graphql",
+      "keyPath": "keys/devnet.json",
+      "feepayerKeyPath": "/Users/tanguyvans/.cache/zkapp-cli/keys/01.json",
+      "feepayerAlias": "01",
+      "fee": "0.1",
+      "smartContract": "PredictionMarket"
     }
   }
 }
