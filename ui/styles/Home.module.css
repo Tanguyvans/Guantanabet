@@ -238,3 +238,101 @@
     grid-template-columns: repeat(2, 50%);
   }
 }
+
+
+.wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.walletButton {
+  background-color: #790e64;
+  color: #ffffff;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.walletButton:hover {
+  background-color: #7b7a76;
+}
+
+.walletText {
+  font-size: 14px;
+  color: #ffffff;
+  background-color: rgba(224, 143, 214, 0.922); /* Fond toujours visible */
+  padding: 8px 12px; /* Plus d'espace autour du texte */
+  border-radius: 8px;
+  text-align: center;
+  min-width: 120px; /* Garde une taille minimale pour que le fond soit toujours visible */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* Navbar */
+.navbar {
+  width: 100%;
+  height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}
+
+/* Titre à gauche */
+.navTitle {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+}
+
+/* Partie droite de la Navbar */
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* Card Contract State */
+.state {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  width: 300px;
+  margin-top: 20px;
+}
+
+/* Conteneur des boutons de vote */
+.voteContainer {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+/* Bouton de vote Yes/No */
+.voteButton {
+  padding: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+  width: 80px;
+}
+
+.voteButton:hover {
+  opacity: 0.8;
+}
