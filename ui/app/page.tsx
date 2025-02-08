@@ -1,10 +1,11 @@
 'use client';
 import Head from 'next/head';
 import Image from 'next/image';
-import {useCallback, useEffect, useRef, useState} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import GradientBG from '../components/GradientBG.js';
 import styles from '../styles/Home.module.css';
 import heroMinaLogo from '../public/assets/hero-mina-logo.svg';
+<<<<<<< HEAD
 import arrowRightSmall from '../public/assets/arrow-right-small.svg';
 import {fetchAccount, Mina, PublicKey} from "o1js";
 import {Add} from "../../contracts/src/Add";
@@ -14,6 +15,12 @@ import {Field} from "o1js";
 // Update this with your deployed contract address
 // const zkAppAddress = "B62qit3nGJUg311EMRCGjd5xUFNnAn1W7tLQ96jPmQXa1vm8gtYgWgp";
 const zkAppAddress = "B62qoBAoZRt8SRUKTqKKooSJFL9g25bHoQein272UNQBy7HriDaAEWT";
+=======
+import { fetchAccount, Mina, PublicKey } from "o1js";
+import { Add } from "../../contracts/src/Add";
+
+const zkAppAddress = "B62qit3nGJUg311EMRCGjd5xUFNnAn1W7tLQ96jPmQXa1vm8gtYgWgp";
+>>>>>>> 464d69d (Add match scores)
 
 import './reactCOIServiceWorker';
 
@@ -25,7 +32,16 @@ export default function Home() {
   const [transactionLink, setTransactionLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
+  // État du pari
+  const [bet, setBet] = useState({
+    name: "PSG vs Marseille",
+    description: "Paris sur le vainqueur du match de Ligue 1",
+    votes: { yes: 0, no: 0 }
+  });
+
+<<<<<<< HEAD
   // fetch the contract state when the page loads
   useEffect(() => {
     (async () => {
@@ -37,6 +53,17 @@ export default function Home() {
 
         console.log("Compiling PredictionMarket contract...");
         await PredictionMarket.compile();
+=======
+  useEffect(() => {
+    (async () => {
+      Mina.setActiveInstance(Mina.Network('https://api.minascan.io/node/devnet/v1/graphql'));
+      await fetchAccount({ publicKey: zkAppAddress });
+      const num = zkApp.current.num.get();
+      setContractState(num.toString());
+
+      console.log("Compiling Add contract to generate proving and verification keys");
+      await Add.compile();
+>>>>>>> 464d69d (Add match scores)
 
         setLoading(false);
       } catch (e) {
@@ -47,6 +74,7 @@ export default function Home() {
     })();
   }, []);
 
+<<<<<<< HEAD
   const createMarket = useCallback(async () => {
     setTransactionLink(null);
     setLoading(true);
@@ -97,43 +125,82 @@ export default function Home() {
       return "Please grant permission to connect";
     }
     return "An unknown error occurred";
+=======
+  // Fonction pour connecter le wallet Mina (Auro Wallet)
+  const connectWallet = async () => {
+    try {
+      const mina = (window as any).mina;
+      if (!mina) {
+        alert("Auro Wallet n'est pas installé !");
+        return;
+      }
+
+      const accounts: string[] = await mina.requestAccounts();
+      if (accounts.length > 0) {
+        setWalletAddress(accounts[0]); // Stocke l'adresse du wallet
+        console.log("Wallet connecté :", accounts[0]);
+      } else {
+        alert("Aucune adresse de wallet trouvée.");
+      }
+    } catch (error) {
+      console.error("Erreur de connexion au wallet :", error);
+      alert("Erreur lors de la connexion au wallet.");
+    }
+  };
+
+  // Fonction pour voter
+  const handleVote = (choice: "yes" | "no") => {
+    setBet(prevBet => ({
+      ...prevBet,
+      votes: { ...prevBet.votes, [choice]: prevBet.votes[choice] + 1 }
+    }));
+>>>>>>> 464d69d (Add match scores)
   };
 
   return (
     <>
       <Head>
+<<<<<<< HEAD
         <title>Prediction Market zkApp</title>
         <meta name="description" content="Prediction Market built with o1js"/>
         <link rel="icon" href="/assets/favicon.ico"/>
+=======
+        <title>Mina zkApp UI</title>
+        <meta name="description" content="built with o1js" />
+        <link rel="icon" href="/assets/favicon.ico" />
+>>>>>>> 464d69d (Add match scores)
       </Head>
       <GradientBG>
+        {/* Navbar */}
+        <nav className={styles.navbar}>
+          <div className={styles.navTitle}>Mina zkApp</div>
+          <div className={styles.navRight}>
+            {walletAddress ? (
+              <div className={styles.walletText}>🔗 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</div>
+            ) : (
+              <button className={styles.walletButton} onClick={connectWallet}>🔗 Connecter mon wallet</button>
+            )}
+          </div>
+        </nav>
+
         <main className={styles.main}>
           <div className={styles.center}>
-            <a
-              href="https://minaprotocol.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Image
-                className={styles.logo}
-                src={heroMinaLogo}
-                alt="Mina Logo"
-                width="191"
-                height="174"
-                priority
-              />
+            <a href="https://minaprotocol.com/" target="_blank" rel="noopener noreferrer">
+              <Image className={styles.logo} src={heroMinaLogo} alt="Mina Logo" width="191" height="174" priority />
             </a>
             <p className={styles.tagline}>
-              built with
-              <code className={styles.code}> o1js</code>
+              built with <code className={styles.code}> o1js</code>
             </p>
           </div>
+
           <p className={styles.start}>
-            Get started by editing
-            <code className={styles.code}> app/page.tsx</code>
+            Get started by editing <code className={styles.code}> app/page.tsx</code>
           </p>
+
+          {/* Card Contract State avec un pari */}
           <div className={styles.state}>
             <div>
+<<<<<<< HEAD
               <div>Markets Root: <span className={styles.bold}>{marketsRoot}</span></div>
               
               <div className={styles.form}>
@@ -164,91 +231,17 @@ export default function Home() {
                     Create Market
                   </button>
                 )}
+=======
+              <h3>{bet.name}</h3>
+              <p>{bet.description}</p>
+              <div className={styles.voteContainer}>
+                <button className={styles.voteButton} onClick={() => handleVote("yes")}>✅ Yes ({bet.votes.yes})</button>
+                <button className={styles.voteButton} onClick={() => handleVote("no")}>❌ No ({bet.votes.no})</button>
+>>>>>>> 464d69d (Add match scores)
               </div>
             </div>
           </div>
-          <div className={styles.grid}>
-            <a
-              href="https://docs.minaprotocol.com/zkapps"
-              className={styles.card}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                <span>DOCS</span>
-                <div>
-                  <Image
-                    src={arrowRightSmall}
-                    alt="Mina Logo"
-                    width={16}
-                    height={16}
-                    priority
-                  />
-                </div>
-              </h2>
-              <p>Explore zkApps, how to build one, and in-depth references</p>
-            </a>
-            <a
-              href="https://docs.minaprotocol.com/zkapps/tutorials/hello-world"
-              className={styles.card}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                <span>TUTORIALS</span>
-                <div>
-                  <Image
-                    src={arrowRightSmall}
-                    alt="Mina Logo"
-                    width={16}
-                    height={16}
-                    priority
-                  />
-                </div>
-              </h2>
-              <p>Learn with step-by-step o1js tutorials</p>
-            </a>
-            <a
-              href="https://discord.gg/minaprotocol"
-              className={styles.card}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                <span>QUESTIONS</span>
-                <div>
-                  <Image
-                    src={arrowRightSmall}
-                    alt="Mina Logo"
-                    width={16}
-                    height={16}
-                    priority
-                  />
-                </div>
-              </h2>
-              <p>Ask questions on our Discord server</p>
-            </a>
-            <a
-              href="https://docs.minaprotocol.com/zkapps/how-to-deploy-a-zkapp"
-              className={styles.card}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                <span>DEPLOY</span>
-                <div>
-                  <Image
-                    src={arrowRightSmall}
-                    alt="Mina Logo"
-                    width={16}
-                    height={16}
-                    priority
-                  />
-                </div>
-              </h2>
-              <p>Deploy a zkApp to Testnet</p>
-            </a>
-          </div>
+
         </main>
       </GradientBG>
     </>
