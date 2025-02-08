@@ -3,7 +3,7 @@ import { runtimeModule, state, runtimeMethod, RuntimeModule } from "@proto-kit/m
 import {assert, State, StateMap} from "@proto-kit/protocol";
 import {PublicKey, Bool, Struct, CircuitString, Provable} from "o1js";
 import {inject} from "tsyringe";
-import {Balances} from "../../../../../../../../my-chain/packages/chain/src/runtime/modules/balances";
+import {Balances} from "./balances";
 
 export class Bets extends Struct({
     predictionId: UInt64,
