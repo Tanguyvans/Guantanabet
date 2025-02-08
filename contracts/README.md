@@ -6,6 +6,8 @@ This template uses TypeScript.
 
 ```sh
 npm run build
+
+node build/src/main.js
 ```
 
 ## How to run tests
