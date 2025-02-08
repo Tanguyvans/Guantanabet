@@ -1,4 +1,4 @@
-import { UInt64 } from "@proto-kit/library";
+import {TokenId, UInt64} from "@proto-kit/library";
 import { runtimeModule, state, runtimeMethod, RuntimeModule } from "@proto-kit/module";
 import {assert, State, StateMap} from "@proto-kit/protocol";
 import {PublicKey, Bool, Struct, CircuitString, Provable} from "o1js";
@@ -80,16 +80,28 @@ export class PredictionMarket extends RuntimeModule {
         await this.yesBet.set(prediction, newBetOnNo);
     }
 
-    // @method async verifyPrediction(prediction: Field, secret: Field) {
-    //     let hashedInputs = Poseidon.hash([prediction, secret]);
-    //     this.expected.requireEquals(hashedInputs);
-    // }
-    //
-    // @method async setResult(result: Field) {
-    //     this.result.set(result);
-    // }
-    //
-    // @method async checkResult() {
-    //     this.result.requireEquals(this.prediction.get());
-    // }
+    @runtimeMethod()
+    public async resolveBet(predictionId: UInt64) {
+        let bet = (await this.totalBets.get(predictionId)).value;
+        assert(this.network.block.height.value.greaterThan(bet.endingTime.value), "The bet is not ended yet");
+        bet.isResolved = Bool(true);
+
+        // TODO: Implement the Oracle logic here
+
+        await this.totalBets.set(predictionId, bet);
+    }
+
+    @runtimeMethod()
+    public async withdraw(predictionId: UInt64, address: PublicKey) {
+        let bet = (await this.totalBets.get(predictionId)).value;
+        assert(bet.isResolved, "The bet is not resolved yet");
+        let prediction = new Prediction({
+            betId: predictionId,
+            PK: this.transaction.sender.value
+        });
+        let profit = (await this.yesBet.get(prediction)).value;
+
+        const tokenId = TokenId.from(0);
+        await this.balances.mint(tokenId, address, profit );
+    }
 }
