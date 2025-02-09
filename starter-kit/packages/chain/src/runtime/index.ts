@@ -13,8 +13,7 @@ export const config: ModulesConfig<typeof modules> = {
   Balances: {
     totalSupply: Balance.from(10_000),
   },
-  PredictionMarket: {
-  },
+  PredictionMarket: {},
 };
 
 export default {

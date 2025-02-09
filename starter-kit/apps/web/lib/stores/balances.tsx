@@ -55,6 +55,7 @@ export const useBalancesStore = create<
       const tx = await client.transaction(sender, async () => {
         await balances.addBalance(tokenId, sender, Balance.from(1000));
       });
+      console.log("Balance tx : ", tx);
 
       await tx.sign();
       await tx.send();

@@ -37,7 +37,7 @@ export class PredictionMarket extends RuntimeModule {
 
   @runtimeMethod()
   public async createBet(minimumStakeAmount: UInt64, betType: CircuitString, description: CircuitString, duration: UInt64, linkedBetId: UInt64) {
-    assert(minimumStakeAmount.greaterThan(UInt64.zero), "Minimum stake amount must be greater than 0");
+    // assert(minimumStakeAmount.greaterThan(UInt64.zero), "Minimum stake amount must be greater than 0");
     assert(Bool(betType === CircuitString.fromString("Long") || betType === CircuitString.fromString("Short")), "Bet type must be 'Long' or 'Short'");
 
     let linkedID = betType === CircuitString.fromString("Short") ? linkedBetId : UInt64.zero;
@@ -45,8 +45,7 @@ export class PredictionMarket extends RuntimeModule {
     let lastBetId = (await this.lastBetId.get()).orElse(UInt64.zero);
     let startingTimestamp = UInt64.from(0);
     startingTimestamp.value = this.network.block.height.value;
-    let endingTimestamp = UInt64.from(0);
-    endingTimestamp.value = this.network.block.height.value.add(duration.value);
+    let endingTimestamp = UInt64.from(1000);
     await this.lastBetId.set(lastBetId.add(1));
     let bet = new Bets({
       betId: lastBetId,
@@ -134,5 +133,10 @@ export class PredictionMarket extends RuntimeModule {
     const tokenId = TokenId.from(0);
 
     await this.balances.mint(tokenId, address, amountToSend );
+  }
+
+  @runtimeMethod()
+  public async test(){
+    return "Hello World";
   }
 }
