@@ -168,6 +168,16 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
     try {
       set({ isLoading: true, error: null });
 
+      // Get existing markets from localStorage
+        const existingMarkets = localStorage.getItem('predictionMarkets');
+        const markets = existingMarkets ? JSON.parse(existingMarkets) : [];
+
+      // check if there is another short market linked to the long market
+        const shortMarket = get().markets.find(market => market.linkedBetId === id);
+        if (shortMarket) {
+            throw new Error('Short market already exists');
+        }
+
       // check if market exists
         const longMarket = get().markets.find(market => market.id === id);
         if (longMarket && longMarket.betType === 'Long') {
@@ -180,6 +190,7 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
             minimumStakeAmount: market.minimumStakeAmount,
             creator: market.creator
           };
+
           return await get().createMarket(shortMarket);
         }
     } catch (error) {

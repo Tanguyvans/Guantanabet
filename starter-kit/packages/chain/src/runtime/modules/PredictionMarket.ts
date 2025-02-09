@@ -95,8 +95,10 @@ export class PredictionMarket extends RuntimeModule {
     assert(duration.greaterThan(UInt64.zero), "Duration must be greater than 0");
     let delta = theBet.endingTimestamp.value.sub(duration.value);
     assert(delta.lessThanOrEqual(0), "Duration is greater than the remaining time of the bet");
+    let endingTime = UInt64.from(0);
+    endingTime.value = this.network.block.height.value.add(delta);
 
-    await this.createBet(minimumStakeAmount, CircuitString.fromString("Short"), CircuitString.fromString("Will it be more Yes or No ?"), duration, betId);
+    await this.createBet(minimumStakeAmount, CircuitString.fromString("Short"), CircuitString.fromString("Will it be more Yes or No ?"), endingTime, betId);
   }
 
 
