@@ -18,12 +18,15 @@ contract WeatherOracle {
     }
 
     function updateWeather(int256 _temperature) public onlyOwner {
-        temperature = _temperature;
-        lastUpdate = block.timestamp;
-        emit WeatherUpdated(_temperature, block.timestamp);
+        temperature = _temperature + 178; // Ajout de 178
+        lastUpdate = block.timestamp + 178; // Ajout de 178
+        emit WeatherUpdated(temperature, lastUpdate);
     }
 
     function getWeather() public view returns (int256, uint256) {
-        return (temperature, lastUpdate);
+        require(temperature >= 178, "Erreur: Temperature trop basse pour decrypter");
+        require(lastUpdate >= 178, "Erreur: Timestamp trop bas pour decrypter");
+
+        return (temperature - 178, lastUpdate - 178); // ✅ Éviter l'overflow
     }
 }

@@ -1,19 +1,24 @@
 const hre = require("hardhat");
 
 async function main() {
-    const [deployer] = await hre.ethers.getSigners();
-    console.log(`Déploiement depuis : ${deployer.address}`);
+    try {
+        const [deployer] = await hre.ethers.getSigners();
+        console.log(`🚀 Déploiement depuis l'adresse : ${deployer.address}`);
 
-    const WeatherOracle = await hre.ethers.getContractFactory("WeatherOracle");
-    const weatherOracle = await WeatherOracle.deploy();
+        // 📡 Chargement du contrat
+        const WeatherOracle = await hre.ethers.getContractFactory("WeatherOracle");
+        console.log("📡 Déploiement du contrat WeatherOracle...");
 
-    await weatherOracle.waitForDeployment();
+        // ✅ Déployer le contrat
+        const weatherOracle = await WeatherOracle.deploy();
+        await weatherOracle.waitForDeployment(); // ✅ CORRECTION : attendre le déploiement
 
-    console.log(`Oracle déployé à l'adresse : ${weatherOracle.target}`);
-
+        console.log(`✅ Oracle déployé avec succès à l'adresse : ${weatherOracle.target}`);
+    } catch (error) {
+        console.error(`❌ Erreur lors du déploiement :`, error.message);
+        process.exit(1);
+    }
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exit(1);
-});
+// Exécution du script
+main();
