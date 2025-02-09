@@ -4,6 +4,7 @@ import { create } from 'zustand';
 export interface PredictionMarket {
   id: string;
   betType: string;
+  linkedBetId?: string;
   description: string;
   endingTimestamp: number;
   startingTimestamp: number;
@@ -29,6 +30,7 @@ interface PredictionMarketState {
   setCurrentMarket: (market: PredictionMarket | null) => void;
   fetchMarkets: () => Promise<void>;
   getMarket: (id: string) => PredictionMarket | null;
+  getAllMarkets: () => PredictionMarket[];
 }
 
 export const usePredictionMarketStore = create<PredictionMarketState>((set, get) => ({
@@ -154,6 +156,11 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
     return get().markets.find(market => market.id === id) || null;
   },
 
+  getAllMarkets: () => {
+    const existingMarkets = localStorage.getItem('predictionMarkets');
+    return existingMarkets ? JSON.parse(existingMarkets) : [];
+  },
+
   createShortBetOnLongBet: async (id, market) => {
     try {
       set({ isLoading: true, error: null });
@@ -164,15 +171,11 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
           // create short market
           const shortMarket = {
             betType: 'Short',
-            description: market.description,
+            linkedBetId: id,
             endingTimestamp: market.endingTimestamp,
             startingTimestamp: market.startingTimestamp,
             minimumStakeAmount: market.minimumStakeAmount,
-            creator: market.creator,
-            totalStake: 0,
-            yesPercentage: 50,
-            noPercentage: 50,
-            isResolved: false
+            creator: market.creator
           };
           return await get().createMarket(shortMarket);
         }
