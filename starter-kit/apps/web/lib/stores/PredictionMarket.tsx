@@ -1,5 +1,10 @@
 import { PublicKey, Field, UInt64, CircuitString, Signature } from 'o1js';
 import { create } from 'zustand';
+import {useWalletStore} from "@/lib/stores/wallet";
+import {useClientStore} from "@/lib/stores/client";
+import {tokenId} from "@/lib/stores/balances";
+import {Balance} from "@proto-kit/library";
+import {client} from "chain";
 
 export interface PredictionMarket {
   id: string;
@@ -22,6 +27,7 @@ interface PredictionMarketState {
   currentMarket: PredictionMarket | null;
   isLoading: boolean;
   error: string | null;
+  smartContract: any;
   // Actions
   createMarket: (market: Omit<PredictionMarket, 'id'>) => Promise<void>;
   createShortBetOnLongBet: (id: string, market: Omit<PredictionMarket, 'id'>) => Promise<void>;
@@ -38,6 +44,7 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
   currentMarket: null,
   isLoading: false,
   error: null,
+  smartContract: client.runtime.resolve("PredictionMarket"),
 
   createMarket: async (market) => {
     try {
@@ -70,6 +77,20 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
         isLoading: false
       }));
 
+      // Create a transaction to create the market
+      const sender = PublicKey.fromBase58(newMarket.creator);
+        const tx = await client.transaction(sender, async () => {
+            await get().smartContract.test();
+        });
+      console.log("Transaction : ", tx);
+      await tx.sign();
+      await tx.send();
+
+
+        if (!tx) {
+            throw new Error('Failed to create market');
+        }
+
       return id;
     } catch (error) {
       set({ error: 'Failed to create market', isLoading: false });
@@ -80,14 +101,21 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
   placeBet: async (marketId, isYes, amount) => {
     try {
       set({ isLoading: true, error: null });
-      
+
+      // get the user wallet
+      const wallet = useWalletStore.getState();
+      if (!wallet.wallet) {
+        throw new Error('Please connect your wallet first');
+      }
+
+      // Update the market state
       const updatedMarkets = get().markets.map(market => {
         if (market.id === marketId) {
-          const adjustment = Math.min(5, amount / 100); // Adjust percentage based on bet size
-          const newYesPercent = isYes 
-            ? market.yesPercentage + adjustment 
-            : market.yesPercentage - adjustment;
-          
+          const adjustment = Math.min(5, amount / 100);
+          const newYesPercent = isYes
+              ? market.yesPercentage + adjustment
+              : market.yesPercentage - adjustment;
+
           return {
             ...market,
             yesPercentage: Math.max(0, Math.min(100, newYesPercent)),
@@ -100,7 +128,23 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
 
       // Save to localStorage
       localStorage.setItem('predictionMarkets', JSON.stringify(updatedMarkets));
-      
+
+      console.log("Wallet : ", wallet.wallet);
+
+      // Create a transaction to send money to the smart contract
+      const tx = await get().smartContract.placeBet(
+          PublicKey.fromBase58(wallet.wallet),
+          UInt64.from(Number(amount)),
+          CircuitString.fromString(marketId),
+          isYes,
+          tokenId
+      );
+
+      // Sign and send the transaction
+      await tx.sign();
+      await tx.send();
+
+
       set({ markets: updatedMarkets, isLoading: false });
     } catch (error) {
       set({ error: 'Failed to place bet', isLoading: false });
@@ -188,6 +232,7 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
             endingTimestamp: market.endingTimestamp,
             startingTimestamp: market.startingTimestamp,
             minimumStakeAmount: market.minimumStakeAmount,
+            description: "Will it be more Yes or No ?",
             creator: market.creator
           };
 

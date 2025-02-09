@@ -160,26 +160,49 @@ export default function Home() {
                       {market.linkedBetId && (
                           <p>Linked to market: {allMarkets.findIndex(m => m.id === market.linkedBetId) + 1}</p>
                       )}
-                      <button
-                          onClick={async () => {
-                            try {
-                              console.log("Placing bet...");
-                              if (!wallet.wallet) {
-                                alert("Please connect your wallet first");
-                                return;
-                              }
+                  <button
+                      onClick={async () => {
+                        try {
+                          console.log("Placing Yes bet...");
+                          if (!wallet.wallet) {
+                            alert("Please connect your wallet first");
+                            return;
+                          }
 
-                              await predictionMarket.placeBet(market.id, true, 100); // Example bet
-                              console.log("Bet placed successfully");
-                            } catch (error) {
-                              console.error("Failed to place bet:", error);
-                            }
-                          }}
-                          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400"
-                      >
-                        Place Bet
-                      </button>
-                    </div>
+                          await predictionMarket.placeBet(marketId, true, 1000000000);
+                          console.log("Yes bet placed successfully");
+
+                        } catch (error) {
+                          console.error("Failed to place Yes bet:", error);
+                        }
+                      }}
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400"
+                  >
+                    Place Yes Bet
+                  </button>
+
+                  <button
+                  onClick={async () => {
+                  try {
+                  console.log("Placing No bet...");
+                  if (!wallet.wallet) {
+                  alert("Please connect your wallet first");
+                  return;
+                }
+
+                  await predictionMarket.placeBet(marketId, false, 1000000000);
+                  console.log("No bet placed successfully");
+
+                } catch (error) {
+                  console.error("Failed to place No bet:", error);
+                }
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-400"
+              >
+                Place No Bet
+              </button>
+            </div>
+
                 ))
             ) : (
                 <p>No markets available</p>
