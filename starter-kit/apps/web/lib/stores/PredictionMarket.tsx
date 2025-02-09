@@ -5,6 +5,7 @@ import {useClientStore} from "@/lib/stores/client";
 import {tokenId} from "@/lib/stores/balances";
 import {Balance} from "@proto-kit/library";
 import {client} from "chain";
+import {appChain} from "chain/dist/processor/utils/app-chain";
 
 export interface PredictionMarket {
   id: string;
@@ -92,8 +93,8 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
       await tx.sign();
       await tx.send();
 
-      console.log("Transaction content : ", tx.transaction);
-
+      const balance = await client.query.runtime.PredictionMarket.lastBetId.get();
+        console.log("Balance : ", balance);
 
         if (!tx) {
             throw new Error('Failed to create market');

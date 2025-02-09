@@ -77,6 +77,7 @@ export class PredictionMarket extends RuntimeModule {
       linkedBetId: linkedID,
       description: description,
     });
+    await this.lastBetId.set(lastBetId.add(1));
     await this.totalBets.set(lastBetId.add(1), bet);
     return bet;
   }
@@ -90,51 +91,58 @@ export class PredictionMarket extends RuntimeModule {
     //   "Amount is lower than minimum stake amount",
     // );
 
+    Provable.log("SM betId : ", betId);
+
     let stakedIds = new StakedId({
-      betId: betId,
+      betId: UInt64.from(0),
       publicKey: this.transaction.sender.value,
     });
 
-    let bet = await this.totalBets.get(betId);
+    console.log(betId);
+
+    let bet = await this.totalBets.get(UInt64.from(0));
+
     console.log("SM bet : ", bet);
     let theBet = bet.value;
     console.log("SM theBet : ", theBet);
 
-    theBet.yesBetAmount = Provable.if<UInt64>(
-      outcome,
-      UInt64,
-      theBet.yesBetAmount.add(amount),
-      theBet.yesBetAmount,
-    );
+    console.log("state map : ", this.totalBets);
+
+
     const stakedToYes = (await this.stakedToYes.get(stakedIds)).orElse(
       UInt64.zero,
     );
-    let stakedToYesNew = Provable.if<UInt64>(
-      outcome,
-      UInt64,
-      stakedToYes.add(amount),
-      stakedToYes,
+
+    let stakedToYesNew = Provable.if(
+      Bool(true),
+        UInt64,
+        UInt64.from(10),
+        UInt64.from(2),
     );
+
+    stakedToYesNew = UInt64.from(stakedToYesNew);
+
     await this.stakedToYes.set(stakedIds, stakedToYesNew);
 
-    theBet.noBetAmount = Provable.if<UInt64>(
-      outcome,
-      UInt64,
-      theBet.noBetAmount.add(amount),
-      theBet.noBetAmount,
+    theBet.noBetAmount = Provable.if(
+        Bool(true),
+        UInt64,
+        UInt64.from(10),
+        UInt64.from(2),
     );
+
     const stakedToNo = (await this.stakedToNo.get(stakedIds)).orElse(
       UInt64.zero,
     );
     let stakedToNoNew = Provable.if<UInt64>(
-      outcome,
-      UInt64,
-      stakedToNo.add(amount),
-      stakedToNo,
+        Bool(true),
+        UInt64,
+        UInt64.from(10),
+        UInt64.from(2),
     );
     await this.stakedToNo.set(stakedIds, stakedToNoNew);
 
-    await this.totalBets.set(betId, theBet);
+    await this.totalBets.set(UInt64.from(0), theBet);
   }
 
   @runtimeMethod()
