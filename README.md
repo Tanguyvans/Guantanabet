@@ -29,6 +29,11 @@ The platform leverages Flare Network's oracle for reliable temperature data and 
 - o1js
 - Flare Network
 
+## Branches
+
+- `main`: Main branch for the project
+- `Bet-Circuit`: Branch with the working bet circuit
+
 ## Run the project
 
 requirements:
