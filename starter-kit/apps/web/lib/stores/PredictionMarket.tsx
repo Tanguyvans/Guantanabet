@@ -1,4 +1,4 @@
-import { PublicKey, Field, UInt64, CircuitString, Signature } from 'o1js';
+import {PublicKey, Field, UInt64, CircuitString, Signature, Bool} from 'o1js';
 import { create } from 'zustand';
 import {useWalletStore} from "@/lib/stores/wallet";
 import {useClientStore} from "@/lib/stores/client";
@@ -143,9 +143,9 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
       const sender = PublicKey.fromBase58(wallet.wallet);
       const tx = await client.transaction(sender, async () => {
         await get().smartContract.placeBet(
-            marketId,
-            isYes,
-            amount
+            UInt64.zero,
+            Bool(true),
+            UInt64.from(1000)
         );
       });
       console.log("Transaction : ", tx);

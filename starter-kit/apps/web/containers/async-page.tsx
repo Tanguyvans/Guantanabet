@@ -169,7 +169,7 @@ export default function Home() {
                             return;
                           }
 
-                          await predictionMarket.placeBet(marketId, true, 1000000000);
+                          await predictionMarket.placeBet("0", true, 1000);
                           console.log("Yes bet placed successfully");
 
                         } catch (error) {

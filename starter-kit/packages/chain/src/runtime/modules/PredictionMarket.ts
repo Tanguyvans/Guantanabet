@@ -83,66 +83,79 @@ export class PredictionMarket extends RuntimeModule {
   }
 
   @runtimeMethod()
-  public async placeBet(betId: UInt64, outcome: Bool, amount: UInt64) {
-    // let theBet = (await this.totalBets.get(betId)).value;
-    // // assert(theBet.isOver.not(), "The bet is over");
-    // assert(
-    //   amount.greaterThan(theBet.minimumStakeAmount),
-    //   "Amount is lower than minimum stake amount",
-    // );
+  public async placeBet(inputBetId: UInt64, outcome: Bool, amount: UInt64) {
+    Provable.log("SM betId : ", inputBetId);
+    Provable.log("SM outcome : ", outcome);
+    Provable.log("SM amount : ", amount);
 
-    Provable.log("SM betId : ", betId);
+    let betId = UInt64.from(0);
+    let amountBet = UInt64.from(amount);
 
     let stakedIds = new StakedId({
-      betId: UInt64.from(0),
+      betId: betId,
       publicKey: this.transaction.sender.value,
     });
 
-    console.log(betId);
+    Provable.log(betId);
 
-    let bet = await this.totalBets.get(UInt64.from(0));
-
-    console.log("SM bet : ", bet);
+    let bet = await this.totalBets.get(betId);
     let theBet = bet.value;
-    console.log("SM theBet : ", theBet);
-
-    console.log("state map : ", this.totalBets);
-
 
     const stakedToYes = (await this.stakedToYes.get(stakedIds)).orElse(
       UInt64.zero,
     );
+    Provable.log("Staked to yes: ", stakedToYes);
 
-    let stakedToYesNew = Provable.if(
-      Bool(true),
-        UInt64,
-        UInt64.from(10),
-        UInt64.from(2),
+    let summup = UInt64.from(stakedToYes.add(amountBet));
+    Provable.log("Summup for yes: ", summup);
+
+    let stakedToYesNew = Provable.if<UInt64>(
+      outcome,
+      UInt64,
+      summup,
+      stakedToYes,
     );
+
+    // let stakedToYesNew = Provable.switch([outcome], Field, [summup]);
+    Provable.log("Staked to yes new: ", stakedToYesNew);
 
     stakedToYesNew = UInt64.from(stakedToYesNew);
 
     await this.stakedToYes.set(stakedIds, stakedToYesNew);
 
-    theBet.noBetAmount = Provable.if(
-        Bool(true),
-        UInt64,
-        UInt64.from(10),
-        UInt64.from(2),
-    );
-
     const stakedToNo = (await this.stakedToNo.get(stakedIds)).orElse(
       UInt64.zero,
     );
+
+    summup = UInt64.from(stakedToNo.add(amountBet));
+
     let stakedToNoNew = Provable.if<UInt64>(
         Bool(true),
         UInt64,
-        UInt64.from(10),
-        UInt64.from(2),
+        summup,
+        stakedToNo,
     );
+
+    stakedToNoNew = UInt64.from(stakedToNoNew);
+
     await this.stakedToNo.set(stakedIds, stakedToNoNew);
 
-    await this.totalBets.set(UInt64.from(0), theBet);
+    // Update the bet
+    let newBet = new Bets({
+      betId: theBet.betId,
+      betType: theBet.betType,
+      yesBetAmount: theBet.yesBetAmount.add(amountBet),
+      noBetAmount: theBet.noBetAmount.add(amountBet),
+      isOver: theBet.isOver,
+      result: theBet.result,
+      startingTimestamp: theBet.startingTimestamp,
+      endingTimestamp: theBet.endingTimestamp,
+      minimumStakeAmount: theBet.minimumStakeAmount,
+      linkedBetId: theBet.linkedBetId,
+      description: theBet.description,
+    });
+
+    await this.totalBets.set(betId, newBet);
   }
 
   @runtimeMethod()
