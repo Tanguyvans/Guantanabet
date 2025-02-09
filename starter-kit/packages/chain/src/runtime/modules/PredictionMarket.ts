@@ -15,6 +15,7 @@ export class Bets extends Struct({
   startingTimestamp: UInt64,
   endingTimestamp: UInt64,
   minimumStakeAmount: UInt64,
+  linkedBetId: UInt64,
   description: CircuitString
 }) {}
 
@@ -35,9 +36,11 @@ export class PredictionMarket extends RuntimeModule {
   }
 
   @runtimeMethod()
-  public async createBet(minimumStakeAmount: UInt64, betType: CircuitString, description: CircuitString, duration: UInt64) {
+  public async createBet(minimumStakeAmount: UInt64, betType: CircuitString, description: CircuitString, duration: UInt64, linkedBetId: UInt64) {
     assert(minimumStakeAmount.greaterThan(UInt64.zero), "Minimum stake amount must be greater than 0");
     assert(Bool(betType === CircuitString.fromString("Long") || betType === CircuitString.fromString("Short")), "Bet type must be 'Long' or 'Short'");
+
+    let linkedID = betType === CircuitString.fromString("Short") ? linkedBetId : UInt64.zero;
 
     let lastBetId = (await this.lastBetId.get()).orElse(UInt64.zero);
     let startingTimestamp = UInt64.from(0);
@@ -55,6 +58,7 @@ export class PredictionMarket extends RuntimeModule {
       startingTimestamp: startingTimestamp,
       endingTimestamp: endingTimestamp,
       minimumStakeAmount: minimumStakeAmount,
+      linkedBetId: linkedID,
       description: description
     });
     await this.totalBets.set(lastBetId.add(1), bet);
@@ -83,15 +87,16 @@ export class PredictionMarket extends RuntimeModule {
   }
 
   @runtimeMethod()
-  public async shortBetOnLongBet(betId: UInt64, minimumStakeAmount: UInt64, description: CircuitString, duration: UInt64) {
+  public async shortBetOnLongBet(betId: UInt64, minimumStakeAmount: UInt64, duration: UInt64) {
     let theBet = (await this.totalBets.get(betId)).value;
     assert(theBet.isOver.not(), "The bet is over");
+    assert(theBet.linkedBetId.greaterThanOrEqual(UInt64.zero), "The bet already have a linked bet");
     assert(Bool(theBet.betType === CircuitString.fromString("Long")), "The bet is not a Long bet");
     assert(duration.greaterThan(UInt64.zero), "Duration must be greater than 0");
     let delta = theBet.endingTimestamp.value.sub(duration.value);
     assert(delta.lessThanOrEqual(0), "Duration is greater than the remaining time of the bet");
 
-    await this.createBet(minimumStakeAmount, CircuitString.fromString("Short"), description, duration);
+    await this.createBet(minimumStakeAmount, CircuitString.fromString("Short"), CircuitString.fromString("Will it be more Yes or No ?"), duration);
   }
 
 
