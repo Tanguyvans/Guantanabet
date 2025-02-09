@@ -4,12 +4,13 @@ import { useFaucet } from "@/lib/stores/balances";
 import { usePredictionMarketStore } from "@/lib/stores/PredictionMarket";
 import { useWalletStore } from "@/lib/stores/wallet";
 import { PredictionMarket } from "chain/dist/runtime/modules/PredictionMarket";
-import { useState } from "react";
+import {useEffect, useState} from "react";
 
 export default function Home() {
   const wallet = useWalletStore();
   const predictionMarket = usePredictionMarketStore();
   const [marketId, setMarketId] = useState<string | null>(null);
+  const [allMarkets, setAllMarkets] = useState<PredictionMarket[]>([]);
 
   const drip = useFaucet();
 
@@ -114,6 +115,7 @@ export default function Home() {
 
                         // After blockchain transaction, update local state
                         let markets = await predictionMarket.getAllMarkets();
+                        setAllMarkets(markets);
                         console.log(markets);
 
                     } catch (error) {
@@ -140,6 +142,40 @@ export default function Home() {
             onDrip={drip}
             loading={false}
           />
+
+          <div>
+            <h1>All Markets</h1>
+            {allMarkets && allMarkets.length > 0 ? (
+                allMarkets.map((market) => (
+                    <div key={market.id} className="market-item">
+                      <p>{market.description}</p>
+                      <button
+                          onClick={async () => {
+                            try {
+                              console.log("Placing bet...");
+                              if (!wallet.wallet) {
+                                alert("Please connect your wallet first");
+                                return;
+                              }
+
+                              await predictionMarket.placeBet(market.id, true, 100); // Example bet
+                              console.log("Bet placed successfully");
+                            } catch (error) {
+                              console.error("Failed to place bet:", error);
+                            }
+                          }}
+                          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400"
+                      >
+                        Place Bet
+                      </button>
+                    </div>
+                ))
+            ) : (
+                <p>No markets available</p>
+            )}
+          </div>
+
+
         </div>
       </div>
     </div>
