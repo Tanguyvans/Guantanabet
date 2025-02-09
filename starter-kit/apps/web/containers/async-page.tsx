@@ -78,7 +78,6 @@ export default function Home() {
                     // After blockchain transaction, update local state
                     let otherid = await predictionMarket.createShortBetOnLongBet(marketId,
                         {
-                      description: "SHORT - Will the price of BTC be higher than $50,000 on 2025-03-01?",
                       endingTimestamp: 1714531200,
                       startingTimestamp: Date.now(),
                       minimumStakeAmount: 1000000000,
@@ -103,6 +102,30 @@ export default function Home() {
               >
                 Create short Market on long
               </button>
+
+              <button
+                onClick={async () => {
+                    try {
+                      console.log("Getting all markets...");
+                        if (!wallet.wallet) {
+                            alert("Please connect your wallet first");
+                            return;
+                        }
+
+                        // After blockchain transaction, update local state
+                        let markets = await predictionMarket.getAllMarkets();
+                        console.log(markets);
+
+                    } catch (error) {
+                        console.error("Failed to create prediction market:", error);
+                    }
+                }
+                }
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+                >
+                Get All Markets
+              </button>
+
             </div>
           </div>
 
