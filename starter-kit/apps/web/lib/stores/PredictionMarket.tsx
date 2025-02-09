@@ -1,4 +1,4 @@
-import { PublicKey, Field, UInt64, CircuitString } from 'o1js';
+import { PublicKey, Field, UInt64, CircuitString, Signature } from 'o1js';
 import { create } from 'zustand';
 
 export interface PredictionMarket {
@@ -26,7 +26,7 @@ interface PredictionMarketState {
   createMarket: (market: Omit<PredictionMarket, 'id'>) => Promise<void>;
   createShortBetOnLongBet: (id: string, market: Omit<PredictionMarket, 'id'>) => Promise<void>;
   placeBet: (marketId: string, isYes: boolean, amount: number) => Promise<void>;
-  resolveMarket: (marketId: string, outcome: boolean) => Promise<void>;
+  resolveMarket: (marketId: string, temperature: Field, timestamp: Field, signature: Signature, oraclePublicKey: PublicKey) => Promise<void>;
   setCurrentMarket: (market: PredictionMarket | null) => void;
   fetchMarkets: () => Promise<void>;
   getMarket: (id: string) => PredictionMarket | null;
@@ -108,7 +108,7 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
     }
   },
 
-  resolveMarket: async (marketId, outcome) => {
+  resolveMarket: async (marketId, temperature, timestamp, signature, oraclePublicKey) => {
     try {
       set({ isLoading: true, error: null });
       
@@ -117,7 +117,10 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
           return {
             ...market,
             isResolved: true,
-            outcome
+            temperature,
+            timestamp,
+            signature,
+            oraclePublicKey
           };
         }
         return market;

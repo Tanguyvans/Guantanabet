@@ -51,9 +51,6 @@ export default function Home() {
                       creator: wallet.wallet,
                       isResolved: false
                     });
-
-                    console.log(newid);
-
                     setMarketId(newid);
 
                     console.log("Market created successfully");
@@ -103,6 +100,22 @@ export default function Home() {
               >
                 Create short Market on long
               </button>
+
+              <button
+                onClick={async () => {
+                  console.log("Resolving market...");
+                  await predictionMarket.resolveMarket(marketId, 25, Date.now(), wallet.wallet, wallet.wallet);
+                  console.log("Market resolved successfully");
+              
+                }
+              }
+              >
+                Resolve Market
+              </button>
+                
+              
+
+
 
               <button
                 onClick={async () => {
