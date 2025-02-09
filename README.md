@@ -40,3 +40,17 @@ nvm use 18.18
 pnpm install
 pnpm env:inmemory dev
 ```
+
+## Contracts:
+
+- `PredictionMarket.ts`: Main contract for creating and managing prediction markets can be found in `starter-kit/packages/chain/src/runtime/modules/PredictionMarket.ts`
+
+- `WeatherOracle.ts`: Contract for fetching temperature data from the Flare Network can be found in `flare/contracts/WeatherOracle.sol`
+
+## Contract address:
+
+The flare contract is deployed on the Flare testnet costom chain:
+
+https://coston.testnet.flarescan.com/address/0xd7eba1a0EE1423C07E1cB842972e2afB5130Fd00/contract/16/code
+
+- `WeatherOracle`: `0xd7eba1a0EE1423C07E1cB842972e2afB5130Fd00`
