@@ -1,7 +1,7 @@
 import { TokenId, UInt64 } from "@proto-kit/library";
 import { runtimeModule, state, runtimeMethod, RuntimeModule } from "@proto-kit/module";
 import { State, StateMap, assert } from "@proto-kit/protocol";
-import { PublicKey, Bool, Struct, CircuitString, Provable } from "o1js";
+import { PublicKey, Bool, Struct, CircuitString, Provable, Field, Signature } from "o1js";
 import { inject } from "tsyringe";
 import { Balances } from "./balances";
 
@@ -101,16 +101,27 @@ export class PredictionMarket extends RuntimeModule {
 
 
   @runtimeMethod()
-  public async closeMarket(betId: UInt64) {
-    let theBet = (await this.totalBets.get(betId)).value;
-    assert(this.network.block.height.value.greaterThan(theBet.endingTimestamp.value), "Bet is not yet over");
-    theBet.isOver = Bool(true);
-
-    // TODO - Integrate with Flare Oracle
-    theBet.result = Bool(true); // Placeholder for oracle integration
-
-    await this.totalBets.set(betId, theBet);
+  public async closeMarket(
+      betId: UInt64,         // ID du pari
+      temperature: Field,     // Température fournie par l'oracle
+      timestamp: Field,       // Timestamp de la mesure
+      signature: Signature, 
+      oraclePublicKey: PublicKey
+  ) {
+      let theBet = (await this.totalBets.get(betId)).value;
+      assert(this.network.block.height.value.greaterThan(theBet.endingTimestamp.value), "Bet is not yet over");
+      
+      // Vérifier la signature
+      const message = [temperature, timestamp];
+      const isValid = signature.verify(oraclePublicKey, message);
+      assert(isValid, "Invalid signature");
+  
+      theBet.isOver = Bool(true);
+      theBet.result = Bool(true);
+  
+      await this.totalBets.set(betId, theBet);
   }
+
 
   @runtimeMethod()
   public async claimWinnings(betId: UInt64, address: PublicKey) {
