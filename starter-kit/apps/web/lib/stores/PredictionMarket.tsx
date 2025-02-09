@@ -80,11 +80,19 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
       // Create a transaction to create the market
       const sender = PublicKey.fromBase58(newMarket.creator);
         const tx = await client.transaction(sender, async () => {
-            await get().smartContract.test();
+            await get().smartContract.createBet(
+                UInt64.from(Number(market.minimumStakeAmount)),
+                CircuitString.fromString(newMarket.betType),
+                CircuitString.fromString(newMarket.description),
+                UInt64.zero,
+                UInt64.from(Number(100))
+            );
         });
       console.log("Transaction : ", tx);
       await tx.sign();
       await tx.send();
+
+      console.log("Transaction content : ", tx.transaction);
 
 
         if (!tx) {
@@ -109,7 +117,7 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
       }
 
       // Update the market state
-      const updatedMarkets = get().markets.map(market => {
+      const updatedMarkets = get().markets.map(async market => {
         if (market.id === marketId) {
           const adjustment = Math.min(5, amount / 100);
           const newYesPercent = isYes
@@ -123,27 +131,25 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
             totalStake: market.totalStake + amount
           };
         }
+
         return market;
       });
 
       // Save to localStorage
       localStorage.setItem('predictionMarkets', JSON.stringify(updatedMarkets));
 
-      console.log("Wallet : ", wallet.wallet);
-
-      // Create a transaction to send money to the smart contract
-      const tx = await get().smartContract.placeBet(
-          PublicKey.fromBase58(wallet.wallet),
-          UInt64.from(Number(amount)),
-          CircuitString.fromString(marketId),
-          isYes,
-          tokenId
-      );
-
-      // Sign and send the transaction
+      // Create a transaction to create the market
+      const sender = PublicKey.fromBase58(wallet.wallet);
+      const tx = await client.transaction(sender, async () => {
+        await get().smartContract.placeBet(
+            marketId,
+            isYes,
+            amount
+        );
+      });
+      console.log("Transaction : ", tx);
       await tx.sign();
       await tx.send();
-
 
       set({ markets: updatedMarkets, isLoading: false });
     } catch (error) {
@@ -235,6 +241,21 @@ export const usePredictionMarketStore = create<PredictionMarketState>((set, get)
             description: "Will it be more Yes or No ?",
             creator: market.creator
           };
+
+          // // Create a transaction to create the market
+          // const sender = PublicKey.fromBase58(shortMarket.creator);
+          // const tx = await client.transaction(sender, async () => {
+          //   await get().smartContract.shortBetOnLongBet(
+          //       UInt64.from(Number(id)),
+          //       UInt64.from(Number(market.minimumStakeAmount)),
+          //       UInt64.from(100)
+          //   );
+          // });
+          // console.log("Transaction : ", tx);
+          // await tx.sign();
+          // await tx.send();
+
+          // console.log("Transaction content : ", tx.transaction);
 
           return await get().createMarket(shortMarket);
         }
