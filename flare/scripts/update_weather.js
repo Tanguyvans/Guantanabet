@@ -21,7 +21,7 @@ async function main() {
         console.log(`🌡️ Température récupérée : ${temperature}°C`);
 
         // ✅ Ajouter 178 pour le "chiffrement"
-        temperature += 178;
+        //temperature += 178;
 
         console.log("🔗 Connexion à la blockchain Flare...");
         const provider = new ethers.JsonRpcProvider(FLARE_RPC);
@@ -30,7 +30,7 @@ async function main() {
         const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, wallet);
 
         console.log("📡 Paramètres envoyés à la blockchain :");
-        console.log("🌡️ Température stockée :", temperature);
+        console.log("🌡️ Température stockée :", temperature + 178);
 
         // 📡 Envoyer la température à la blockchain
         console.log("📡 Envoi des données...");
