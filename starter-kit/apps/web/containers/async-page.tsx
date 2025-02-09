@@ -146,9 +146,12 @@ export default function Home() {
           <div>
             <h1>All Markets</h1>
             {allMarkets && allMarkets.length > 0 ? (
-                allMarkets.map((market) => (
+                allMarkets.map((market, index) => (
                     <div key={market.id} className="market-item">
-                      <p>{market.description}</p>
+                      <p>{index + 1}. {market.description}</p>
+                      {market.linkedBetId && (
+                          <p>Linked to market: {allMarkets.findIndex(m => m.id === market.linkedBetId) + 1}</p>
+                      )}
                       <button
                           onClick={async () => {
                             try {
