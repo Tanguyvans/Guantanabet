@@ -9,6 +9,10 @@ GuantanamoBets is a decentralized prediction market platform built on the Mina P
 
 The platform leverages Flare Network's oracle for reliable temperature data and settlement. Built with a modern stack including Next.js for the frontend and o1js for zero-knowledge smart contracts.
 
+## Flowchart
+
+![Flowchart](./flowchart.png)
+
 ## Features
 
 - Create Long and Short prediction markets
@@ -25,6 +29,14 @@ The platform leverages Flare Network's oracle for reliable temperature data and 
 - o1js
 - Flare Network
 
-## Flowchart
+## Run the project
 
-![Flowchart](./flowchart.png)
+requirements:
+node 18.18
+
+```bash
+cd starter-kit
+nvm use 18.18
+pnpm install
+pnpm env:inmemory dev
+```
