@@ -74,8 +74,7 @@ export default function Home() {
                     }
 
                     // After blockchain transaction, update local state
-                    let otherid = await predictionMarket.createShortBetOnLongBet(marketId,
-                        {
+                    let otherid = await predictionMarket.createShortBetOnLongBet(marketId, {
                       endingTimestamp: 1714531200,
                       startingTimestamp: Date.now(),
                       minimumStakeAmount: 1000000000,
@@ -88,7 +87,7 @@ export default function Home() {
 
                     console.log(otherid);
 
-                    setMarketId(otherid);
+                    //setMarketId(otherid);
 
                     console.log("Short Market created successfully");
 
@@ -112,10 +111,6 @@ export default function Home() {
               >
                 Resolve Market
               </button>
-                
-              
-
-
 
               <button
                 onClick={async () => {
@@ -190,7 +185,6 @@ export default function Home() {
                 <p>No markets available</p>
             )}
           </div>
-
 
         </div>
       </div>
